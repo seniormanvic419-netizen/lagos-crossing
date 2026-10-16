@@ -647,7 +647,7 @@ try {
 function resetGame() {
   clearWorld();
   // Safe grass behind the start line so the camera never looks past the world.
-  for (let i = -12; i < 0; i++) {
+  for (let i = -24; i < 0; i++) {
     const row = makeGrass(i, { safe: true });
     rows.set(i, row);
     world.add(row.group);
@@ -957,7 +957,7 @@ function frame() {
     placeHero();
     checkCollisions();
     if (player.alive) {
-      dropRows(player.row - 12);
+      dropRows(player.row - 24);
       ensureRows(player.row + ROWS_AHEAD);
     }
     hero.animate(time, { hop: player.hop ? player.hop.t / HOP_TIME : null, squashed: player.squashed });
