@@ -14,6 +14,7 @@ const HOP_HEIGHT = 0.55;
 const BEHIND_LIMIT = 4; // rows behind the best row before the agbero gets you
 const IDLE_LIMIT = 9; // seconds without a hop before the agbero gets you
 const LIVES = 3;
+const CONTINUE_COST = 5; // coins to carry on from the last checkpoint after a game over
 
 const COLORS = {
   grassA: 0x8fd14f,
@@ -707,6 +708,9 @@ async function endGame() {
   $('over-best').textContent = best;
   const saveMsg = $('save-msg');
   saveMsg.textContent = '';
+  const cont = $('continue-btn');
+  cont.hidden = coins < CONTINUE_COST || player.checkpoint === 0;
+  cont.textContent = `Continue from checkpoint (${CONTINUE_COST} coins)`;
   overScreen.hidden = false;
 
   if (currentUser) {
@@ -750,6 +754,21 @@ async function renderBoard() {
 
 $('start-btn').addEventListener('click', startGame);
 $('again-btn').addEventListener('click', startGame);
+$('continue-btn').addEventListener('click', continueRun);
+
+// Spend coins to carry on from the last checkpoint with one life.
+function continueRun() {
+  if (player.coins < CONTINUE_COST || player.checkpoint === 0) return;
+  player.coins -= CONTINUE_COST;
+  hud.coins.textContent = player.coins;
+  player.lives = 1;
+  renderLives();
+  runId++;
+  overScreen.hidden = true;
+  state = 'playing';
+  respawn();
+  toast('Back at the checkpoint. One life!');
+}
 $('player-sign-in').addEventListener('click', signIn);
 $('over-sign-in').addEventListener('click', signIn);
 
