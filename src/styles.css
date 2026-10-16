@@ -73,6 +73,31 @@ html, body {
 }
 .stat .label, .results .label { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
 .stat b { font-size: 24px; line-height: 1.1; }
+.stat.lives b { color: #ff5c5c; letter-spacing: 2px; }
+.tag.small { font-size: 13px; }
+
+.toast {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--lime);
+  font-weight: 700;
+  font-size: 16px;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+}
+.toast.show { animation: toast 1.6s ease forwards; }
+@keyframes toast {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  15% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 .icon-btn {
   position: fixed;

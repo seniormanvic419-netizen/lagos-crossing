@@ -13,6 +13,7 @@ const HOP_TIME = 0.17;
 const HOP_HEIGHT = 0.55;
 const BEHIND_LIMIT = 4; // rows behind the best row before the agbero gets you
 const IDLE_LIMIT = 9; // seconds without a hop before the agbero gets you
+const LIVES = 3;
 
 const COLORS = {
   grassA: 0x8fd14f,
@@ -30,6 +31,7 @@ const COLORS = {
   cars: [0xe74c3c, 0x3498db, 0xffffff, 0x2ecc71, 0x9b59b6, 0x1b1b22],
   train: 0x2b5c9e,
   bus: 0xb8352b,
+  flag: 0xf5c518,
 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -104,6 +106,8 @@ const MATS = {
   bus: mat(COLORS.bus),
   light: mat(0xff3b30, { emissive: 0x000000 }),
   pole: mat(0xdddddd),
+  flag: mat(COLORS.flag, { emissive: 0x3a2e00 }),
+  checkLine: mat(0xd8fd71),
 };
 const GEO = {
   tile: new THREE.BoxGeometry(70, 0.4, TILE), // wide enough that the camera never sees the edge
@@ -227,7 +231,19 @@ function makeGrass(index, { safe = false } = {}) {
     const x = randInt(-HALF_WIDTH, HALF_WIDTH);
     if (!blocked.has(x)) coins.set(x, coin(g, x));
   }
-  return { index, type: 'grass', group: g, blocked, coins };
+  // The first grass row after a crossing is a checkpoint: flags at both ends
+  // and a bright line across the grass.
+  const prev = rows.get(index - 1);
+  const checkpoint = !!prev && prev.type !== 'grass';
+  if (checkpoint) {
+    addMesh(g, new THREE.BoxGeometry(HALF_WIDTH * 2 + 1, 0.03, 0.12), MATS.checkLine, 0, 0.005, 0.44, { cast: false });
+    for (const sx of [-1, 1]) {
+      const x = sx * (HALF_WIDTH + 0.7);
+      addMesh(g, new THREE.BoxGeometry(0.08, 1.6, 0.08), MATS.pole, x, 0.8, 0);
+      addMesh(g, new THREE.BoxGeometry(0.5, 0.3, 0.04), MATS.flag, x + (sx < 0 ? 0.29 : -0.29), 1.4, 0);
+    }
+  }
+  return { index, type: 'grass', group: g, blocked, coins, checkpoint };
 }
 
 function tree(parent, x) {
@@ -381,7 +397,10 @@ const player = {
   hop: null, // { fromX, fromRow, toX, toRow, t, yaw }
   queue: [],
   alive: true,
-  bestRow: 0,
+  bestRow: 0, // rows crossed this run (the score)
+  frontier: 0, // how far ahead the player has been since the last respawn (agbero check)
+  checkpoint: 0, // row to respawn on
+  lives: LIVES,
   coins: 0,
   idle: 0,
   deathBy: null,
@@ -442,7 +461,13 @@ function landed() {
     player.bestRow = player.row;
     hud.rows.textContent = player.bestRow;
   }
+  if (player.row > player.frontier) player.frontier = player.row;
   const row = rows.get(player.row);
+  if (row.checkpoint && player.row > player.checkpoint) {
+    player.checkpoint = player.row;
+    toast('Checkpoint!');
+    sfx.checkpoint();
+  }
   const c = row.coins.get(player.x);
   if (c) {
     row.group.remove(c);
@@ -461,8 +486,42 @@ function die(reason) {
   player.hop = null;
   player.queue.length = 0;
   player.squashed = reason === 'vehicle' || reason === 'train';
+  player.lives--;
+  renderLives();
   sfx.crash();
-  setTimeout(() => endGame(), 650);
+  const run = runId;
+  if (player.lives > 0) {
+    toast(reason === 'agbero' ? 'The agbero got you. Back to the checkpoint!' : 'Ouch! Back to the checkpoint.');
+    setTimeout(() => {
+      if (run === runId) respawn();
+    }, 900);
+  } else {
+    setTimeout(() => {
+      if (run === runId) endGame();
+    }, 650);
+  }
+}
+
+function respawn() {
+  const row = rows.get(player.checkpoint) ?? rows.get(0);
+  let x = 0;
+  if (row?.blocked.has(0)) {
+    for (let d = 1; d <= HALF_WIDTH; d++) {
+      if (!row.blocked.has(-d)) { x = -d; break; }
+      if (!row.blocked.has(d)) { x = d; break; }
+    }
+  }
+  player.x = x;
+  player.row = player.checkpoint;
+  player.frontier = player.checkpoint;
+  player.idle = 0;
+  player.alive = true;
+  player.squashed = false;
+  player.deathBy = null;
+  hero.root.rotation.y = 0;
+  ensureRows(player.row + ROWS_AHEAD);
+  placeHero();
+  updateCamera(true);
 }
 
 // ---------------------------------------------------------------------------
@@ -505,6 +564,11 @@ const sfx = (() => {
     bump: () => tone(160, 0.08, 'sawtooth', 0.04),
     crash: () => tone(120, 0.45, 'sawtooth', 0.12, -90),
     horn: () => tone(220, 0.25, 'square', 0.05),
+    checkpoint: () => {
+      tone(660, 0.1, 'triangle', 0.08);
+      setTimeout(() => tone(990, 0.1, 'triangle', 0.08), 90);
+      setTimeout(() => tone(1320, 0.16, 'triangle', 0.08), 180);
+    },
     get muted() {
       return muted;
     },
@@ -524,7 +588,24 @@ const sfx = (() => {
 // HUD and screens
 // ---------------------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
-const hud = { rows: $('hud-rows'), coins: $('hud-coins') };
+const hud = { rows: $('hud-rows'), coins: $('hud-coins'), lives: $('hud-lives') };
+let runId = 0;
+
+function renderLives() {
+  hud.lives.textContent = '\u2665'.repeat(Math.max(player.lives, 0)) + '\u2661'.repeat(Math.max(LIVES - player.lives, 0));
+}
+
+let toastTimer;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.hidden = false;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.hidden = true), 1600);
+}
 const startScreen = $('start-screen');
 const overScreen = $('over-screen');
 const muteBtn = $('mute');
@@ -556,18 +637,24 @@ function resetGame() {
     world.add(row.group);
   }
   ensureRows(ROWS_AHEAD);
+  runId++;
   Object.assign(player, {
     x: 0,
     row: 0,
     hop: null,
     alive: true,
     bestRow: 0,
+    frontier: 0,
+    checkpoint: 0,
+    lives: LIVES,
     coins: 0,
     idle: 0,
     deathBy: null,
     squashed: false,
   });
   player.queue.length = 0;
+  renderLives();
+  $('toast').hidden = true;
   hero.root.rotation.y = 0;
   hud.rows.textContent = '0';
   hud.coins.textContent = '0';
@@ -597,9 +684,9 @@ async function endGame() {
     }
   }
   $('over-title').textContent =
-    player.deathBy === 'train' ? 'The train got you!' :
-    player.deathBy === 'agbero' ? 'Too slow, the agbero caught you!' :
-    'Knocked down by traffic!';
+    player.deathBy === 'train' ? 'The train got you. No lives left!' :
+    player.deathBy === 'agbero' ? 'The agbero caught you. No lives left!' :
+    'Knocked down. No lives left!';
   $('over-rows').textContent = rowsCrossed;
   $('over-coins').textContent = coins;
   $('over-best').textContent = best;
@@ -811,7 +898,7 @@ function checkCollisions() {
       if (Math.abs(row.trainX - hx) < row.trainLength / 2 + 0.4) return die('train');
     }
   }
-  if (player.bestRow - player.row > BEHIND_LIMIT || player.idle > IDLE_LIMIT) die('agbero');
+  if (player.frontier - player.row > BEHIND_LIMIT || player.idle > IDLE_LIMIT) die('agbero');
 }
 
 function frame() {

@@ -26,7 +26,10 @@
   <div class="hud" id="hud">
     <div class="stat"><span class="label">Rows</span><b id="hud-rows">0</b></div>
     <div class="stat"><span class="label">Coins</span><b id="hud-coins">0</b></div>
+    <div class="stat lives"><span class="label">Lives</span><b id="hud-lives">&#9829;&#9829;&#9829;</b></div>
   </div>
+
+  <div class="toast" id="toast" hidden></div>
 
   <button class="icon-btn" id="mute" type="button" aria-label="Sound on">🔊</button>
 
@@ -37,6 +40,7 @@
       <p class="controls">
         <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to hop. Swipe or tap on a phone.
       </p>
+      <p class="tag small">3 lives. The grass after every crossing is a checkpoint: get hit and you go back there, rows and coins kept.</p>
       <button class="primary" id="start-btn" type="button">Play</button>
       <p class="hint" id="guest-hint" hidden>You're playing as a guest. Sign in with start.ng to save your score.</p>
     </div>
