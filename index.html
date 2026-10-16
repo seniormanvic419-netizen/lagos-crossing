@@ -6,6 +6,9 @@
   <title>Lagos Crossing</title>
   <meta name="description" content="Hop your start.ng character across the roads of Lagos. Dodge danfos, okadas and the train, grab naira coins, and climb the leaderboard.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="src/styles.css">
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -35,13 +38,20 @@
 
   <div class="overlay" id="start-screen">
     <div class="panel">
-      <h1>Lagos Crossing</h1>
+      <div class="logo"><span class="pill">start.ng</span></div>
+      <h1><span>Lagos</span> Crossing</h1>
       <p class="tag">Hop across the danfos, okadas and the train. Grab the naira. Don't look back.</p>
+      <ul class="legend">
+        <li><i class="sw grass"></i>Grass is safe</li>
+        <li><i class="sw road"></i>Roads kill</li>
+        <li><i class="sw rail"></i>Red light, train coming</li>
+        <li><i class="sw coin"></i>Coins break ties</li>
+      </ul>
       <p class="controls">
         <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to hop. Swipe or tap on a phone.
       </p>
       <p class="tag small">3 lives. The grass after every crossing is a checkpoint: get hit and you go back there, rows and coins kept.</p>
-      <button class="primary" id="start-btn" type="button">Play</button>
+      <button class="primary big" id="start-btn" type="button">Play</button>
       <p class="hint" id="guest-hint" hidden>You're playing as a guest. Sign in with start.ng to save your score.</p>
     </div>
   </div>

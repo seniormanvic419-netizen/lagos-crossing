@@ -43,7 +43,7 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 // ---------------------------------------------------------------------------
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -51,19 +51,20 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87c9e8);
 scene.fog = new THREE.Fog(0x87c9e8, 26, 44);
 
-const VIEW = 13; // vertical size of the orthographic view in world units
+const VIEW = 10.5; // vertical size of the orthographic view in world units
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 100);
 const CAMERA_OFFSET = new THREE.Vector3(-7, 11, 9);
+const SUN_OFFSET = new THREE.Vector3(6, 14, 6);
 const cameraTarget = new THREE.Vector3();
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x6b8f3a, 0.75));
 const sun = new THREE.DirectionalLight(0xfff4d6, 1.6);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.near = 1;
 sun.shadow.camera.far = 60;
-sun.shadow.camera.left = sun.shadow.camera.bottom = -16;
-sun.shadow.camera.right = sun.shadow.camera.top = 16;
+sun.shadow.camera.left = sun.shadow.camera.bottom = -13;
+sun.shadow.camera.right = sun.shadow.camera.top = 13;
 sun.shadow.bias = -0.0005;
 scene.add(sun, sun.target);
 
@@ -73,7 +74,7 @@ function resize() {
   renderer.setSize(w, h, false);
   const aspect = w / h;
   // Keep the road at least 11 tiles wide on narrow screens.
-  const view = Math.max(VIEW, 11 / aspect);
+  const view = Math.max(VIEW, 10 / aspect);
   camera.top = view / 2;
   camera.bottom = -view / 2;
   camera.left = (-view / 2) * aspect;
@@ -221,7 +222,7 @@ function makeGrass(index, { safe = false } = {}) {
   // Trees outside the playable strip frame the road.
   for (let x = -WORLD_HALF; x <= WORLD_HALF; x++) {
     const outside = Math.abs(x) > HALF_WIDTH;
-    if (outside ? Math.random() < 0.55 : !safe && Math.random() < 0.22) {
+    if (outside ? Math.random() < 0.55 : !safe && x !== 0 && Math.random() < 0.13) {
       if (!outside) blocked.add(x);
       tree(g, x);
     }
@@ -388,7 +389,7 @@ function clearWorld() {
 // Player
 // ---------------------------------------------------------------------------
 const hero = createCharacter(DEFAULT_STYLE);
-hero.root.scale.setScalar(0.34);
+hero.root.scale.setScalar(0.46);
 scene.add(hero.root);
 
 const player = {
@@ -425,13 +426,13 @@ function tryHop(dirName) {
   const toRow = player.row + d.dr;
   hero.root.rotation.y = d.yaw;
   if (Math.abs(toX) > HALF_WIDTH || toRow < 0) {
-    sfx.bump();
+    nudge(d);
     return;
   }
   ensureRows(toRow + ROWS_AHEAD);
   const target = rows.get(toRow);
   if (target.blocked.has(toX)) {
-    sfx.bump();
+    nudge(d);
     return;
   }
   player.hop = { fromX: player.x, fromRow: player.row, toX, toRow, t: 0, yaw: d.yaw };
@@ -439,7 +440,21 @@ function tryHop(dirName) {
   sfx.hop();
 }
 
+let bump = null; // { dx, dz, t } a short push against something solid
+
+function nudge(d) {
+  bump = { dx: d.dx * 0.22, dz: -d.dr * 0.22, t: 0 };
+  sfx.bump();
+}
+
 function placeHero() {
+  if (bump) {
+    bump.t += 1 / 60;
+    const k = Math.sin(Math.min(bump.t / 0.16, 1) * Math.PI);
+    hero.root.position.set(player.x + bump.dx * k, 0, rowZ(player.row) + bump.dz * k);
+    if (bump.t >= 0.16) bump = null;
+    return;
+  }
   if (player.hop) {
     const h = player.hop;
     const k = Math.min(h.t / HOP_TIME, 1);
@@ -759,10 +774,16 @@ addEventListener('keydown', (e) => {
 });
 
 for (const b of document.querySelectorAll('#dpad button')) {
-  b.addEventListener('pointerdown', (e) => {
+  let last = 0;
+  const go = (e) => {
     e.preventDefault();
+    const now = performance.now();
+    if (now - last < 120) return; // pointerdown and click from the same press
+    last = now;
     tryHop(b.dataset.dir);
-  });
+  };
+  b.addEventListener('pointerdown', go);
+  b.addEventListener('click', go);
 }
 
 // Swipe anywhere on the canvas; a tap hops forward.
@@ -834,7 +855,7 @@ function updateCamera(snap = false) {
   }
   camera.position.copy(cameraTarget).add(CAMERA_OFFSET);
   camera.lookAt(cameraTarget);
-  sun.position.copy(cameraTarget).add(new THREE.Vector3(6, 14, 6));
+  sun.position.copy(cameraTarget).add(SUN_OFFSET);
   sun.target.position.copy(cameraTarget);
 }
 
