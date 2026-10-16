@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Lagos Crossing</title>
+  <meta name="description" content="Hop your start.ng character across the roads of Lagos. Dodge danfos, okadas and the train, grab naira coins, and climb the leaderboard.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div class="startng-card" id="player-card" hidden>
+    <img id="player-face" alt="">
+    <div>
+      <b id="player-name">Guest</b>
+      <span id="player-account">Not signed in</span>
+    </div>
+    <button id="player-sign-in" type="button" hidden>Sign in</button>
+  </div>
+
+  <div class="hud" id="hud">
+    <div class="stat"><span class="label">Rows</span><b id="hud-rows">0</b></div>
+    <div class="stat"><span class="label">Coins</span><b id="hud-coins">0</b></div>
+  </div>
+
+  <button class="icon-btn" id="mute" type="button" aria-label="Sound on">🔊</button>
+
+  <div class="overlay" id="start-screen">
+    <div class="panel">
+      <h1>Lagos Crossing</h1>
+      <p class="tag">Hop across the danfos, okadas and the train. Grab the naira. Don't look back.</p>
+      <p class="controls">
+        <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to hop. Swipe or tap on a phone.
+      </p>
+      <button class="primary" id="start-btn" type="button">Play</button>
+      <p class="hint" id="guest-hint" hidden>You're playing as a guest. Sign in with start.ng to save your score.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="over-screen" hidden>
+    <div class="panel">
+      <h2 id="over-title">Knocked down!</h2>
+      <div class="results">
+        <div><span class="label">Rows</span><b id="over-rows">0</b></div>
+        <div><span class="label">Coins</span><b id="over-coins">0</b></div>
+        <div><span class="label">Best</span><b id="over-best">0</b></div>
+      </div>
+      <p class="hint" id="save-msg"></p>
+      <ol class="board" id="board"></ol>
+      <div class="row">
+        <button class="primary" id="again-btn" type="button">Play again</button>
+        <button class="ghost" id="over-sign-in" type="button" hidden>Sign in to save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dpad" id="dpad" aria-hidden="true">
+    <button data-dir="up" type="button">▲</button>
+    <button data-dir="left" type="button">◀</button>
+    <button data-dir="down" type="button">▼</button>
+    <button data-dir="right" type="button">▶</button>
+  </div>
+
+  <script type="module" src="src/game.js"></script>
+</body>
+</html>
