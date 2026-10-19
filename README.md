@@ -4,6 +4,12 @@ A hop-across-the-road game for [start.ng](https://start.ng). Your start.ng chara
 
 Play it at **https://lagos-crossing.start.ng**
 
+## Demo
+
+![Lagos Crossing gameplay](docs/demo.gif)
+
+Full demo video (52 s): [docs/lagos-crossing-demo.mp4](docs/lagos-crossing-demo.mp4)
+
 ## How to play
 
 - **Arrow keys** or **WASD** to hop. On a phone, swipe, tap to hop forward, or use the on-screen pad.
